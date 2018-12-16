@@ -10,18 +10,18 @@ namespace Pidzemka.Models
 
         public IReadOnlyList<Station> Stations { get; }
 
-        public IReadOnlyList<LinePart> LineParts { get; }
+        public IReadOnlyList<Node> LineParts { get; }
 
-        public Route(IEnumerable<Station> stations, IEnumerable<LinePart> lineParts)
+        public Route(IEnumerable<Station> stations, IEnumerable<Node> nodes)
         {
             Stations = stations.ToList().AsReadOnly();
-            LineParts = lineParts.ToList().AsReadOnly();
+            LineParts = nodes.ToList().AsReadOnly();
             MapSvgRouteRegex = GetMapSvgRouteRegex(LineParts);
         }
 
-        private static string GetMapSvgRouteRegex(IEnumerable<LinePart> lineParts)
+        private static string GetMapSvgRouteRegex(IEnumerable<Node> nodes)
         {
-            var conditions = lineParts.Select(value =>
+            var conditions = nodes.Select(value =>
             {
                 return $"{value.StartStationId}_{value.EndStationId}";
             });

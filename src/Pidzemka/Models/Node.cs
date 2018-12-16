@@ -1,10 +1,11 @@
 ﻿using System;
+using Pidzemka.Models.Dto;
 
 namespace Pidzemka.Models
 {
-    public class LinePart : IEquatable<LinePart>
+    public class Node : IEquatable<Node>
     {
-        public LinePart(uint startStationId, uint endStationId, TimeSpan timeDistance)
+        public Node(int startStationId, int endStationId, TimeSpan timeDistance)
         {
             if (startStationId < endStationId)
             {
@@ -20,13 +21,18 @@ namespace Pidzemka.Models
             TimeDistance = timeDistance;
         }
 
-        public uint StartStationId { get; }
+        public Node(NodeDto dto) 
+            : this(dto.StartStationId, dto.EndStationId, dto.TimeDistance)
+        {
+        }
 
-        public uint EndStationId { get; }
+        public int StartStationId { get; }
+
+        public int EndStationId { get; }
         
         public TimeSpan TimeDistance { get; }
 
-        public bool HasStation(uint stationId)
+        public bool HasStation(int stationId)
         {
             return stationId == StartStationId || stationId == EndStationId;
         }
@@ -34,7 +40,7 @@ namespace Pidzemka.Models
         #region Equality logic
         public override bool Equals(object obj)
         {
-            if (!(obj is LinePart other))
+            if (!(obj is Node other))
             {
                 return false;
             }
@@ -42,7 +48,7 @@ namespace Pidzemka.Models
             return Equals(other);
         }
 
-        public bool Equals(LinePart other)
+        public bool Equals(Node other)
         {
             return Equals(this, other);
         }
@@ -51,23 +57,23 @@ namespace Pidzemka.Models
         {
             var hash = 17;
 
-            hash = hash * 31 + (int)StartStationId;
-            hash = hash * 31 + (int)EndStationId;
+            hash = hash * 31 + StartStationId;
+            hash = hash * 31 + EndStationId;
 
             return hash;
         }
 
-        public static bool operator ==(LinePart left, LinePart right)
+        public static bool operator ==(Node left, Node right)
         {
             return Equals(left, right);
         }
 
-        public static bool operator !=(LinePart left, LinePart right)
+        public static bool operator !=(Node left, Node right)
         {
             return !Equals(left, right);
         }
 
-        private static bool Equals(LinePart left, LinePart right)
+        private static bool Equals(Node left, Node right)
         {
             return left.StartStationId == right.StartStationId && left.EndStationId == right.EndStationId;
         }

@@ -1,18 +1,15 @@
 ﻿using System;
-using Pidzemka.Models;
-using System.Threading.Tasks;
 using System.IO;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
-using System.Linq;
-using System.Collections.Generic;
+using Pidzemka.Models;
+using Pidzemka.Models.Dto;
+
 namespace Pidzemka.Managers
 {
     public class RouteManager
     {
-        private static readonly Lazy<RouteManager> lazyInstance = new Lazy<RouteManager>(() =>
-        {
-            return new RouteManager();
-        });
+        private static readonly Lazy<RouteManager> lazyInstance = new Lazy<RouteManager>(() => new RouteManager());
 
         private bool isInitialized;
 
@@ -33,32 +30,29 @@ namespace Pidzemka.Managers
                 return;
             }
 
-            var dataResourceName = $"Pidzemka.Resources.data_{cityName}.json";
-            var mapSvgResourceName = $"Pidzemka.Resources.map_{cityName}.svg";
-         
-            var assembly = typeof(CrossApp).Assembly;
-
-            using (var stream = assembly.GetManifestResourceStream(dataResourceName))
-            using (var streamReader = new StreamReader(stream))
+            await Task.Run(() =>
             {
-                await Task.Run(() =>
+                var dataResourceName = $"Pidzemka.Resources.data_{cityName}.json";
+                var mapSvgResourceName = $"Pidzemka.Resources.map_{cityName}.svg";
+
+                var assembly = typeof(CrossApp).Assembly;
+
+                using (var stream = assembly.GetManifestResourceStream(dataResourceName))
+                using (var streamReader = new StreamReader(stream))
                 {
                     var dataJsonString = streamReader.ReadToEnd();
-                    Map = JsonConvert.DeserializeObject<Map>(dataJsonString);
-                    LatestClosestStationId = Map.DefaultFromStationId;
+                    var mapDto = JsonConvert.DeserializeObject<MapDto>(dataJsonString);
+                    Map = new Map(mapDto);
+                    LatestClosestStationId = Map.DefaultStationId;
+                }
 
-                }).ConfigureAwait(false);
-            }
-
-            using (var stream = assembly.GetManifestResourceStream(mapSvgResourceName))
-            using (var streamReader = new StreamReader(stream))
-            {
-                await Task.Run(() =>
+                using (var stream = assembly.GetManifestResourceStream(mapSvgResourceName))
+                using (var streamReader = new StreamReader(stream))
                 {
                     MapSvg = streamReader.ReadToEnd();
+                }
 
-                }).ConfigureAwait(false);
-            }
+            }).ConfigureAwait(false);
 
             isInitialized = true;
         }
@@ -72,18 +66,7 @@ namespace Pidzemka.Managers
 
         public Route CreateDummyRoute()
         {
-            var lineParts = new List<LinePart>
-            {
-                new LinePart(310, 311, TimeSpan.Zero),
-                new LinePart(311, 312, TimeSpan.Zero),
-                new LinePart(312, 314, TimeSpan.Zero),
-                new LinePart(314, 119, TimeSpan.Zero),
-                new LinePart(119, 118, TimeSpan.Zero),
-                new LinePart(118, 117, TimeSpan.Zero),
-                new LinePart(117, 116, TimeSpan.Zero),
-            };
-
-            return new Route(new List<Station>(), lineParts);
+            return Map.FindRoute(310, 220);
         }
     }
 }

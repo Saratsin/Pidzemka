@@ -6,7 +6,9 @@ namespace Pidzemka.Models.Dijkstra
 {
     public static class DijkstraGraph
     {
-        public static List<Station> FindShortestPath(List<Station> allStationsWithNearestStationsDistances, Station fromStation, Station toStation)
+        public static List<Station> FindShortestPath(List<Station> allStationsWithNearestStationsDistances, 
+                                                     Station fromStation,
+                                                     Station toStation)
         {
             var connections = allStationsWithNearestStationsDistances.ToDictionary(
                 station => station,
@@ -25,20 +27,23 @@ namespace Pidzemka.Models.Dijkstra
         }
 
         /// <summary>
-        /// Calculates the shortest route from a source node to a target node given a set of nodes and connections. Will only work for graphs with non-negative path weights.
+        /// Calculates the shortest route from a source node to a target node given a set of nodes and connections. 
+        /// Will only work for graphs with non-negative path weights
         /// </summary>
-        /// <param name="connections">All the nodes, as well as the list of their connections.</param>
-        /// <param name="sourceNode">The node to start from.</param>
-        /// <param name="targetNode">The node we should seek.</param>
-        /// <param name="equalsFunction">A function used for testing if two nodes are equal.</param>
-        /// <param name="distanceFunction">A function used for calculating the distance/weight between two nodes.</param>
-        /// <returns>An ordered list of nodes from source->target giving the shortest path from the source to the target node. Returns null if no path is possible.</returns>
-        public static List<TNode> FindShortestPath<TNode>(
-            IDictionary<TNode, List<TNode>> connections, 
-            TNode sourceNode, 
-            TNode targetNode, 
-            Func<TNode, TNode, bool> equalsFunction, 
-            Func<TNode, TNode, double> distanceFunction)
+        /// <param name="connections">All the nodes, as well as the list of their connections</param>
+        /// <param name="sourceNode">The node to start from</param>
+        /// <param name="targetNode">The node we should seek</param>
+        /// <param name="equalsFunction">A function used for testing if two nodes are equal</param>
+        /// <param name="distanceFunction">A function used for calculating the distance/weight between two nodes</param>
+        /// <returns>
+        /// An ordered list of nodes from source->target giving the shortest path from the source to the target node. 
+        /// Returns null if no path is possible
+        /// </returns>
+        public static List<TNode> FindShortestPath<TNode>(IDictionary<TNode, List<TNode>> connections, 
+                                                          TNode sourceNode, 
+                                                          TNode targetNode, 
+                                                          Func<TNode, TNode, bool> equalsFunction, 
+                                                          Func<TNode, TNode, double> distanceFunction)
         {
             // Initialize values
             var distance = new Dictionary<TNode, double>();
@@ -81,8 +86,10 @@ namespace Pidzemka.Models.Dijkstra
                 }
             }
 
-            // Construct a list containing the complete path. We'll start by looking at the previous node of the target and then making our way to the beginning.
-            // We'll reverse it to get a source->target list instead of the other way around. The source node is manually added.
+            // Construct a list containing the complete path. We'll start by looking 
+            // at the previous node of the target and then making our way to the beginning.
+            // We'll reverse it to get a source->target list instead of the other way around. 
+            // The source node is manually added.
             var result = new List<TNode>();
             var target = targetNode;
 

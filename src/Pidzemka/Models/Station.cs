@@ -1,24 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Drawing;
-using System.Linq;
 using Pidzemka.Extensions;
+using Pidzemka.Models.Dto;
+using System.Linq;
 
 namespace Pidzemka.Models
 {
     public class Station : IEquatable<Station>
     {
-        public Station(uint id, PointF coordinates, double latitude, double longitude)
+        public Station(StationDto dto)
         {
-            Id = id;
-            Coordinates = coordinates;
-            Latitude = latitude;
-            Longitude = longitude;
+            Id = dto.Id;
+            MapCoordinates = dto.MapCoordinates;
+            Latitude = dto.Latitude;
+            Longitude = dto.Longitude;
         }
 
-        public uint Id { get; }
+        public int Id { get; }
 
-        public PointF Coordinates { get; }
+        public PointF MapCoordinates { get; }
 
         public double Latitude { get; }
 
@@ -26,9 +27,16 @@ namespace Pidzemka.Models
 
         public IReadOnlyDictionary<Station, TimeSpan> NearestStationsDistances { get; private set; }
 
-        public void InitializeNearestStations(IDictionary<Station, TimeSpan> nearestStationDistances)
+        public TimeSpan GetNearestStationDistance(int stationId)
         {
-            NearestStationsDistances = nearestStationDistances.AsReadOnly();
+            var key = NearestStationsDistances.Keys.First(station => station.Id == stationId);
+
+            return NearestStationsDistances[key];
+        }
+
+        public void InitializeNearestStations(IDictionary<Station, TimeSpan> nearestStationsDistances)
+        {
+            this.NearestStationsDistances = nearestStationsDistances.AsReadOnly();
         }
 
         #region Equality & Hash code

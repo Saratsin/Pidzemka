@@ -13,11 +13,12 @@
     <Folder Include="Models\" />
     <Folder Include="Resources\" />
     <Folder Include="Common\" />
-    <Folder Include="JsonConverters\" />
     <Folder Include="Managers\" />
     <Folder Include="Extensions\">
     </Folder>
     <Folder Include="Models\Dijkstra\">
+    </Folder>
+    <Folder Include="Models\Dto\">
     </Folder>
   </ItemGroup>
   <ItemGroup>
@@ -27,5 +28,9 @@
   <ItemGroup>
     <EmbeddedResource Include="Resources\data_kyiv.json" />
     <EmbeddedResource Include="Resources\map_kyiv.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Remove="JsonConverters\LinePartJsonConverter.cs" />
+    <Compile Remove="JsonConverters\MapJsonConverter.cs" />
   </ItemGroup>
 </Project>

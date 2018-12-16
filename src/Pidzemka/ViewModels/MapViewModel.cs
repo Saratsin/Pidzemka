@@ -7,6 +7,8 @@ using Pidzemka.Common;
 using Pidzemka.Managers;
 using Pidzemka.ViewModels.Abstract;
 using MvvmCross.Commands;
+using System;
+using System.Diagnostics;
 
 namespace Pidzemka.ViewModels
 {
@@ -41,15 +43,22 @@ namespace Pidzemka.ViewModels
         {
             if (MapRouteSvgResolver.ReplaceStringMap == null)
             {
-                var route = RouteManager.Instance.CreateDummyRoute();
-
-                MapRouteSvgResolver.ReplaceStringMap = new Dictionary<string, string>
+                try
                 {
-                    [$"regex:{route.MapSvgRouteRegex}"] = Constants.SubwayRouteLinePartsReplaceRegex
-                };
+                    var route = RouteManager.Instance.CreateDummyRoute();
 
-                ButtonText = "Clear route";
-                RaisePropertyChanged(nameof(MapRouteSvgResolver));
+                    MapRouteSvgResolver.ReplaceStringMap = new Dictionary<string, string>
+                    {
+                        [$"regex:{route.MapSvgRouteRegex}"] = Constants.SubwayRouteLinePartsReplaceRegex
+                    };
+                    
+                    ButtonText = "Clear route";
+                    RaisePropertyChanged(nameof(MapRouteSvgResolver));
+                }
+                catch(Exception ex)
+                {
+                    Debug.WriteLine(ex.ToString());
+                }
             }
             else
             {
