@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="View">
+        <attr format="string" name="MvxBind" />
+        <attr format="string" name="MvxLang" />
+        <attr format="string" name="MvxItemTemplate" />
+        <attr format="string" name="MvxTemplateSelector" />
+    </declare-styleable>
+</resources>

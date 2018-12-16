@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="MvvmCross" Version="6.2.0" />
+    <PackageReference Include="Xamarin.FFImageLoading.Svg" Version="2.4.3.840" />
+    <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="ViewModels\" />
+    <Folder Include="ViewModels\Abstract\" />
+    <Folder Include="Models\" />
+    <Folder Include="Resources\" />
+    <Folder Include="Common\" />
+    <Folder Include="JsonConverters\" />
+    <Folder Include="Managers\" />
+    <Folder Include="Extensions\">
+    </Folder>
+    <Folder Include="Models\Dijkstra\">
+    </Folder>
+  </ItemGroup>
+  <ItemGroup>
+    <None Remove="Resources\data_kyiv.json" />
+    <None Remove="Resources\map_kyiv.svg" />
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Resources\data_kyiv.json" />
+    <EmbeddedResource Include="Resources\map_kyiv.svg" />
+  </ItemGroup>
+</Project>
