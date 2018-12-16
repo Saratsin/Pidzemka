@@ -3,6 +3,7 @@ using System.Linq;
 using Pidzemka.Extensions;
 using Pidzemka.Models.Dijkstra;
 using Pidzemka.Models.Dto;
+using System.Drawing;
 
 namespace Pidzemka.Models
 {
@@ -12,6 +13,8 @@ namespace Pidzemka.Models
 
         public Map(MapDto dto)
         {
+            Width = dto.Width;
+            Height = dto.Height;
             DefaultStationId = dto.DefaultStationId;
 
             var nodes = dto.Nodes.Select(nodeDto => new Node(nodeDto)).ToList().AsReadOnly();
@@ -20,6 +23,11 @@ namespace Pidzemka.Models
                                     .Select(stationDto => new Station(stationDto))
                                     .ToDictionary(station => station.Id, station => station)
                                     .AsReadOnly();
+
+            StationsCoordinates = dto.Stations
+                                     .Select(stationDto => stationDto.MapCoordinates)
+                                     .ToList()
+                                     .AsReadOnly();
 
             foreach (var station in stationsDictionary.Values)
             {
@@ -33,9 +41,17 @@ namespace Pidzemka.Models
 
                 station.InitializeNearestStations(nearestStationsWithDistances);
             }
+
+
         }
 
+        public int Width { get; }
+
+        public int Height { get; }
+
         public int DefaultStationId { get; }
+
+        public IReadOnlyList<PointF> StationsCoordinates { get; private set; }
 
         public Route FindRoute(int fromStationId, int toStationId)
         {

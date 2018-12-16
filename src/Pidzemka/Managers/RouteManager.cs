@@ -63,10 +63,5 @@ namespace Pidzemka.Managers
         {
             return Task.FromResult(LatestClosestStationId);
         }
-
-        public Route CreateDummyRoute()
-        {
-            return Map.FindRoute(310, 220);
-        }
     }
 }
