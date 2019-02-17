@@ -1,19 +1,21 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using FFImageLoading.Svg.Platform;
 using MvvmCross.Commands;
 using Pidzemka.Common;
 using Pidzemka.Managers;
+using Pidzemka.Models;
 using Pidzemka.ViewModels.Abstract;
 
 namespace Pidzemka.ViewModels
 {
     public class MapViewModel : BaseViewModel
     {
+        private MapData mapData;
+        private string mapSvgData;
         private string buttonText = "Show route";
         private string fromText;
         private string toText;
@@ -21,24 +23,36 @@ namespace Pidzemka.ViewModels
         public MapViewModel()
         {
             ButtonClickCommand = new MvxCommand(ButtonClick);
+
         }
 
         public override async Task Initialize()
         {
             await RouteManager.Instance.Initialize("kyiv").ConfigureAwait(false);
-            await RaisePropertyChanged(nameof(StationCoordinates)).ConfigureAwait(false);
-            await RaisePropertyChanged(nameof(MapWidth)).ConfigureAwait(false);
-            await RaisePropertyChanged(nameof(MapHeight)).ConfigureAwait(false);
-            await RaisePropertyChanged(nameof(MapSvgData)).ConfigureAwait(false);
+
+            MapData = new MapData
+            {
+                StationsStrokeWidth = 1f,
+                StationsRadius = 8.5f,
+                MinimumScaleDistance = 200f,
+                MapSize = RouteManager.Instance.Map.Size,
+                Stations = RouteManager.Instance.Map.StationsCoordinates
+            };
+
+            MapSvgData = RouteManager.Instance.MapSvg;
         }
 
-        public string MapSvgData => RouteManager.Instance.MapSvg;
+        public MapData MapData
+        {
+            get => mapData;
+            set => SetProperty(ref mapData, value);
+        }
 
-        public int MapWidth => RouteManager.Instance.Map.Width;
-
-        public int MapHeight => RouteManager.Instance.Map.Height;
-
-        public IEnumerable<PointF> StationCoordinates => RouteManager.Instance.Map.StationsCoordinates;
+        public string MapSvgData
+        {
+            get => mapSvgData;
+            private set => SetProperty(ref mapSvgData, value);
+        }
 
         public SvgDataResolver MapRouteSvgResolver { get; } = new SvgDataResolver();
 

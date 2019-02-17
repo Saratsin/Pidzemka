@@ -42,9 +42,7 @@ namespace Pidzemka.Droid.UI.Activities
 
             set.Bind(this).For(nameof(MapResolver)).To(vm => vm.MapRouteSvgResolver);
             set.Bind(this).For(nameof(MapSvgData)).To(vm => vm.MapSvgData);
-            set.Bind(mapImage).For(v => v.RealWidth).To(vm => vm.MapWidth);
-            set.Bind(mapImage).For(v => v.RealHeight).To(vm => vm.MapHeight);
-            set.Bind(mapImage).For(v => v.StationCoordinates).To(vm => vm.StationCoordinates);
+            set.Bind(mapImage).For(v => v.MapData).To(vm => vm.MapData);
 
             set.Apply();
         }

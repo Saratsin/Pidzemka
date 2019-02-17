@@ -1,15 +1,19 @@
 ﻿using System;
-using FFImageLoading.Views;
-using Android.Runtime;
 using Android.Graphics;
-using System.Collections.Generic;
-using PointF = System.Drawing.PointF;
+using Android.Runtime;
 using Android.Views;
-using Pidzemka.Droid.Extensions;
+using FFImageLoading.Views;
 using Pidzemka.Droid.Common;
+using Pidzemka.Droid.Extensions;
+using Pidzemka.Models;
+using PointF = System.Drawing.PointF;
 
 namespace Pidzemka.Droid.UI.Controls
 {
+    /// <summary>
+    /// Map image view.
+    /// It's assumed that width of this view is always smaller than its height
+    /// </summary>
     [Register("Pidzemka.MapImageView")]
     public class MapImageView : ImageViewAsync
     {
@@ -17,14 +21,19 @@ namespace Pidzemka.Droid.UI.Controls
         {
             None,
             Drag,
-            Zoom
+            Zoom,
+            DoubleTap,
+            DoubleTapZoom,
+            LongTap
         }
 
-        private const float FingersDistanceThreshold = 10f;
+        private static readonly int fingersDistanceThreshold = 10;
+
+        private static readonly int doubleTapZoomDistanceThreshold = DisplayUtils.DpToPx(30f);
+        private static readonly TimeSpan doubleTouchDelay = TimeSpan.FromMilliseconds(200);
 
         private bool isDrawingFirstTime = true;
-
-        private IEnumerable<PointF> stations;
+        private DateTimeOffset lastPointerDownActionTime = DateTimeOffset.MinValue;
 
         // These matrices will be used to move and zoom image
         private Matrix currentMatrix = new Matrix();
@@ -33,10 +42,10 @@ namespace Pidzemka.Droid.UI.Controls
         private TouchMode currentTouchMode = TouchMode.None;
 
         // Remember some things for zooming
-        private PointF touchStartPoint = new PointF();
-        private PointF scalePoint = new PointF();
+        private PointF initialTouchPoint = new PointF();
+        private PointF currentScalePoint = new PointF();
       
-        float initialDistance = 1f;
+        private float initialDistance = 1f;
 
         public MapImageView(Android.Content.Context context) : base(context)
         {
@@ -58,23 +67,36 @@ namespace Pidzemka.Droid.UI.Controls
             Initialize();
         }
 
-        public IEnumerable<PointF> StationCoordinates
+        public MapData MapData { get; set; }
+
+        public float MaxRelativeScreenOffset { get; set; } = 0.1f;
+
+        protected float MinimumScale
         {
-            get => stations;
-            set
+            get
             {
-                stations = value;
-                Invalidate();
+                var screenWidth = Width;
+                var screenOffsetMultiplier = 1 / (1 - MaxRelativeScreenOffset * 2);
+                var imageWidth = (float)Drawable.IntrinsicWidth;
+                var imageWidthWithOffset = imageWidth * screenOffsetMultiplier;
+
+                return screenWidth / imageWidthWithOffset;
             }
         }
 
-        public int RealWidth { get; set; }
+        protected float MediumScale => (MinimumScale + MaximumScale) / 3f;
 
-        public int RealHeight { get; set; }
+        protected float MaximumScale
+        {
+            get
+            {
+                var screenWidth = Width;
+                var imageMinimumScaleDistance = ToImageValue(MapData.MinimumScaleDistance);
 
-        public float MinScaleDistance { get; set; } = 300f;
-
-        public float MaxRelativeScreenOffset { get; set; } = 0.2f;
+                var maximumScale = screenWidth / imageMinimumScaleDistance;
+                return maximumScale;
+            }
+        }
 
         protected float GetMinPossibleTranslateX(Matrix matrix)
         {
@@ -127,69 +149,59 @@ namespace Pidzemka.Droid.UI.Controls
 
         protected override void OnDraw(Canvas canvas)
         {
-            if (isDrawingFirstTime && Drawable != null)
+            if (Drawable == null || MapData?.Stations == null)
             {
-                var scale = Width / (float)Drawable.IntrinsicWidth;
-                var scaledHeight = Drawable.IntrinsicHeight * scale;
-                var startY = (Height - scaledHeight) / 2;
+                return;
+            }
 
-                currentMatrix.Set(initialMatrix);
-                currentMatrix.PostScale(scale, scale);
-                currentMatrix.PostTranslate(0, startY);
-
+            if (isDrawingFirstTime)
+            {
+                ScaleMatrix(currentMatrix, MinimumScale, currentScalePoint);
                 ImageMatrix = currentMatrix;
-
                 isDrawingFirstTime = false;
             }
 
             base.OnDraw(canvas);
 
-            if (Drawable == null || StationCoordinates == null)
-            {
-                return;
-            }
+            var imageValues = currentMatrix.GetValues();
 
-            var imageValues = new float[9];
-            currentMatrix.GetValues(imageValues);
-
-            var widthScale = imageValues[Matrix.MscaleX] * Drawable.IntrinsicWidth / RealWidth;
-            var heightScale = imageValues[Matrix.MscaleY] * Drawable.IntrinsicHeight / RealHeight;
+            var stationStrokeWidth = ToImageValue(MapData.StationsStrokeWidth) * imageValues[MatrixValue.ScaleX];
+            var stationRadius = ToImageValue(MapData.StationsRadius) * imageValues[MatrixValue.ScaleX];
 
             var paint = new Paint
             {
-                StrokeWidth = widthScale,
+                StrokeWidth = stationStrokeWidth,
                 StrokeCap = Paint.Cap.Round
             };
 
-            foreach (var stationCoordinate in StationCoordinates)
+            foreach (var stationCoordinate in MapData.Stations)
             {
                 var mappedStationCoordinate = MapPoint(stationCoordinate);
 
                 var screenX = mappedStationCoordinate.X;
                 var screenY = mappedStationCoordinate.Y;
 
-                var radius = 8.5f * widthScale;
-
                 paint.SetStyle(Paint.Style.Fill);
                 paint.Color = Color.White;
 
-                canvas.DrawCircle(screenX, screenY, radius, paint);
+                canvas.DrawCircle(screenX, screenY, stationRadius, paint);
 
                 paint.SetStyle(Paint.Style.Stroke);
                 paint.Color = Color.Black;
 
-                canvas.DrawCircle(screenX, screenY, radius - widthScale / 2, paint);
+                canvas.DrawCircle(screenX, screenY, stationRadius - stationStrokeWidth / 2f, paint);
             }
         }
 
         private PointF MapPoint(PointF point)
         {
-            var imageX = point.X / RealWidth * Drawable.IntrinsicWidth;
-            var imageY = point.Y / RealHeight * Drawable.IntrinsicHeight;
+            var imageX = ToImageValue(point.X);
+            var imageY = ToImageValue(point.Y);
 
             var pointArray = new[] { imageX, imageY };
             ImageMatrix.MapPoints(pointArray);
             var mappedPoint = new PointF(pointArray[0], pointArray[1]);
+
             return mappedPoint;
         }
 
@@ -214,36 +226,69 @@ namespace Pidzemka.Droid.UI.Controls
             switch (e.Action & MotionEventActions.Mask)
             {
                 case MotionEventActions.Down:
+                    var currentTime = DateTimeOffset.Now;
+                    var intervalFromLastTouch = currentTime - lastPointerDownActionTime;
+                    var isDoubleTouch = intervalFromLastTouch < doubleTouchDelay;
+                    if (isDoubleTouch)
+                    {
+                        currentTouchMode = TouchMode.DoubleTap;
+                        currentScalePoint = initialTouchPoint;
+                        break;
+                    }
+                    lastPointerDownActionTime = currentTime;
                     initialMatrix.Set(currentMatrix);
-                    touchStartPoint = new PointF(e.GetX(), e.GetY());
+                    initialTouchPoint = new PointF(e.GetX(), e.GetY());
                     currentTouchMode = TouchMode.Drag;
                     break;
                 case MotionEventActions.PointerDown:
                     initialDistance = GetDistanceBetweenFingers(e);
-                    if (initialDistance > FingersDistanceThreshold) 
+                    if (initialDistance > fingersDistanceThreshold) 
                     {
                         initialMatrix.Set(currentMatrix);
-                        scalePoint = GetMidPointBetweenFingers(e);
+                        currentScalePoint = GetMidPointBetweenFingers(e);
                         currentTouchMode = TouchMode.Zoom;
                     }
+                    break;
+                case MotionEventActions.Up when currentTouchMode == TouchMode.DoubleTap:
+                    var resetScale = GetClosestResetScale(currentMatrix);
+                    ScaleMatrix(currentMatrix, resetScale, currentScalePoint);
+                    currentTouchMode = TouchMode.None;
                     break;
                 case MotionEventActions.Up:
                 case MotionEventActions.PointerUp:
                     currentTouchMode = TouchMode.None;
                     break;
+                case MotionEventActions.Move when currentTouchMode == TouchMode.DoubleTap:
+                    currentTouchMode = TouchMode.DoubleTapZoom;
+                    break;
+                case MotionEventActions.Move when currentTouchMode == TouchMode.DoubleTapZoom:
+                    var distanceX = e.GetX() - initialTouchPoint.X;
+                    var distanceY = e.GetY() - initialTouchPoint.Y;
+                    var currentDist = (float)Math.Sqrt(distanceX * distanceX + distanceY * distanceY);
+                    if (currentDist >  doubleTapZoomDistanceThreshold)
+                    {
+                        currentMatrix.Set(initialMatrix);
+                        var rawScale = currentDist / doubleTapZoomDistanceThreshold;
+                        var scale = GetScaleValue(rawScale);
+                        currentMatrix.PostScale(scale, scale, initialTouchPoint.X, initialTouchPoint.Y);
+                        (var correctTransX, var correctTransY) = CorrectTranslateValues(initialTouchPoint.X, initialTouchPoint.Y);
+                        currentMatrix.PostTranslate(correctTransX, correctTransY);
+                    }
+                    break;
                 case MotionEventActions.Move when currentTouchMode == TouchMode.Drag:
                     currentMatrix.Set(initialMatrix);
-                    (var transX, var transY) = GetTranslateValues(e.GetX(), e.GetY());
+                    (var transX, var transY) = GetTranslateValues(e.GetX(), e.GetY(), initialTouchPoint.X, initialTouchPoint.Y);
                     currentMatrix.PostTranslate(transX, transY);
                     break;
                 case MotionEventActions.Move when currentTouchMode == TouchMode.Zoom:
                     var currentDistance = GetDistanceBetweenFingers(e);
-                    if (currentDistance > FingersDistanceThreshold) 
+                    if (currentDistance > fingersDistanceThreshold) 
                     {
                         currentMatrix.Set(initialMatrix);
-                        var scale = GetScaleValue(currentDistance);
-                        currentMatrix.PostScale(scale, scale, scalePoint.X, scalePoint.Y);
-                        (var correctTransX, var correctTransY) = GetTranslateValues(touchStartPoint.X, touchStartPoint.Y);
+                        var rawScale = currentDistance / initialDistance;
+                        var scale = GetScaleValue(rawScale);
+                        currentMatrix.PostScale(scale, scale, currentScalePoint.X, currentScalePoint.Y);
+                        (var correctTransX, var correctTransY) = CorrectTranslateValues(initialTouchPoint.X, initialTouchPoint.Y);
                         currentMatrix.PostTranslate(correctTransX, correctTransY);
                     }
                     break;
@@ -253,14 +298,31 @@ namespace Pidzemka.Droid.UI.Controls
             return true;
         }
 
-        private (float translateX, float translateY) GetTranslateValues(float newX, float newY)
+        private void ScaleMatrix(Matrix matrix, float scale, PointF scalePoint)
+        {
+            var matrixValues = matrix.GetValues();
+            var rawScale = scale / matrixValues[MatrixValue.ScaleX];
+            var correctScale = GetScaleValue(rawScale);
+            matrix.PostScale(correctScale, correctScale, scalePoint.X, scalePoint.Y);
+
+            matrixValues = matrix.GetValues();
+            (var transX, var transY) = CorrectTranslateValues(matrixValues[MatrixValue.TransX], matrixValues[MatrixValue.TransY]);
+            currentMatrix.PostTranslate(transX, transY);
+        }
+
+        private (float correctedX, float correctedY) CorrectTranslateValues(float translateX, float translateY)
+        {
+            return GetTranslateValues(translateX, translateY, translateX, translateY);
+        }
+
+        private (float translateX, float translateY) GetTranslateValues(float newX, float newY, float oldX, float oldY)
         {
             var matrixValues = currentMatrix.GetValues();
             var startTranslateX = matrixValues[MatrixValue.TransX];
             var startTranslateY = matrixValues[MatrixValue.TransY];
 
-            var estimatedTranslateX = newX - touchStartPoint.X;
-            var estimatedTranslateY = newY - touchStartPoint.Y;
+            var estimatedTranslateX = newX - oldX;
+            var estimatedTranslateY = newY - oldY;
 
             var totalTranslateX = startTranslateX + estimatedTranslateX;
             var totalTranslateY = startTranslateY + estimatedTranslateY;
@@ -279,30 +341,51 @@ namespace Pidzemka.Droid.UI.Controls
             return (translateX, translateY);
         }
 
-        private float GetScaleValue(float currentDistance)
+        private float GetClosestResetScale(Matrix matrix)
         {
-            var scale = currentDistance / initialDistance;
+            var matrixValues = matrix.GetValues();
+            var currentScale = Math.Max(matrixValues[MatrixValue.ScaleX], matrixValues[MatrixValue.ScaleY]);
+
+            if (currentScale >= MaximumScale)
+                return MinimumScale;
+
+            if (currentScale >= MediumScale)
+                return MaximumScale;
+
+            return MediumScale;
+        }
+
+        private float GetScaleValue(float rawScale)
+        {
             var currentScaleX = currentMatrix.GetValue(MatrixValue.ScaleX);
             var currentScaleY = currentMatrix.GetValue(MatrixValue.ScaleY);
-            var futureScaleX = currentScaleX * scale;
-            var futureScaleY = currentScaleY * scale;
-            var minScaleX = Width / (float)Drawable.IntrinsicWidth / 1.1f;
-            var minScaleY = Height / (float)Drawable.IntrinsicHeight / 1.1f;
+            var futureScaleX = currentScaleX * rawScale;
+            var futureScaleY = currentScaleY * rawScale;
 
-            var correctedFutureScaleX = Math.Max(futureScaleX, minScaleX);
-            var correctedFutureScaleY = Math.Max(futureScaleY, minScaleY);
+            var correctedFutureScaleX = Math.Max(futureScaleX, MinimumScale);
+            var correctedFutureScaleY = Math.Max(futureScaleY, MinimumScale);
             var correctedScaleX = correctedFutureScaleX / currentScaleX;
             var correctedScaleY = correctedFutureScaleY / currentScaleY;
 
             var correctedScale = Math.Min(correctedScaleX, correctedScaleY);
 
-            var maxScaleX = Width / MinScaleDistance / currentScaleX;
-            var maxScaleY = Height / MinScaleDistance / currentScaleY;
+            var maxScaleX = MaximumScale / currentScaleX;
+            var maxScaleY = MaximumScale / currentScaleY;
             var maxScale = Math.Max(maxScaleX, maxScaleY);
 
             correctedScale = Math.Min(correctedScale, maxScale);
 
             return correctedScale;
+        }
+
+        private float ToImageValue(float mapDataValue)
+        {
+            var mapDataWidth = MapData.MapSize.Width;
+            var imageWidth = Drawable.IntrinsicWidth;
+            var multiplier = imageWidth / mapDataWidth;
+
+            var imageValue = mapDataValue * multiplier;
+            return imageValue;
         }
     }
 }

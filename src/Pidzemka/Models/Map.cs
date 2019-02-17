@@ -13,8 +13,8 @@ namespace Pidzemka.Models
 
         public Map(MapDto dto)
         {
-            Width = dto.Width;
-            Height = dto.Height;
+            Size = new Size(dto.Width, dto.Height);
+
             DefaultStationId = dto.DefaultStationId;
 
             var nodes = dto.Nodes.Select(nodeDto => new Node(nodeDto)).ToList().AsReadOnly();
@@ -45,9 +45,7 @@ namespace Pidzemka.Models
 
         }
 
-        public int Width { get; }
-
-        public int Height { get; }
+        public Size Size { get; }
 
         public int DefaultStationId { get; }
 

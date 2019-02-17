@@ -88,6 +88,7 @@
     <Compile Include="UI\Controls\MapImageView.cs" />
     <Compile Include="Extensions\UIExtensions.cs" />
     <Compile Include="Common\MatrixValue.cs" />
+    <Compile Include="Common\DisplayUtils.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MvvmCross">
