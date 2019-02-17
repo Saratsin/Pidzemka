@@ -29,7 +29,7 @@ namespace Pidzemka.Droid.UI.Controls
 
         private static readonly int fingersDistanceThreshold = 10;
 
-        private static readonly int doubleTapZoomDistanceThreshold = DisplayUtils.DpToPx(30f);
+        private static readonly int doubleTapZoomDistanceThreshold = DisplayUtils.DpToPx(24f);
         private static readonly TimeSpan doubleTouchDelay = TimeSpan.FromMilliseconds(200);
 
         private bool isDrawingFirstTime = true;
@@ -262,13 +262,13 @@ namespace Pidzemka.Droid.UI.Controls
                     currentTouchMode = TouchMode.DoubleTapZoom;
                     break;
                 case MotionEventActions.Move when currentTouchMode == TouchMode.DoubleTapZoom:
-                    var distanceX = e.GetX() - initialTouchPoint.X;
                     var distanceY = e.GetY() - initialTouchPoint.Y;
-                    var currentDist = (float)Math.Sqrt(distanceX * distanceX + distanceY * distanceY);
-                    if (currentDist >  doubleTapZoomDistanceThreshold)
+                    if (Math.Abs(distanceY) >  doubleTapZoomDistanceThreshold)
                     {
                         currentMatrix.Set(initialMatrix);
-                        var rawScale = currentDist / doubleTapZoomDistanceThreshold;
+                        var rawScale = distanceY / doubleTapZoomDistanceThreshold;
+                        if (rawScale < 0) rawScale = -1 / rawScale;
+
                         var scale = GetScaleValue(rawScale);
                         currentMatrix.PostScale(scale, scale, initialTouchPoint.X, initialTouchPoint.Y);
                         (var correctTransX, var correctTransY) = CorrectTranslateValues(initialTouchPoint.X, initialTouchPoint.Y);
