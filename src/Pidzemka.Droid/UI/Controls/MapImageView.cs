@@ -29,7 +29,7 @@ namespace Pidzemka.Droid.UI.Controls
 
         private static readonly int fingersDistanceThreshold = 10;
 
-        private static readonly int doubleTapZoomDistanceThreshold = DisplayUtils.DpToPx(24f);
+        private static readonly int doubleTapZoomDistanceThreshold = DisplayUtils.DpToPx(32f);
         private static readonly TimeSpan doubleTouchDelay = TimeSpan.FromMilliseconds(200);
 
         private bool isDrawingFirstTime = true;
@@ -262,19 +262,23 @@ namespace Pidzemka.Droid.UI.Controls
                     currentTouchMode = TouchMode.DoubleTapZoom;
                     break;
                 case MotionEventActions.Move when currentTouchMode == TouchMode.DoubleTapZoom:
-                    var distanceY = e.GetY() - initialTouchPoint.Y;
-                    if (Math.Abs(distanceY) >  doubleTapZoomDistanceThreshold)
                     {
+                        var distanceY = e.GetY() - initialTouchPoint.Y;
                         currentMatrix.Set(initialMatrix);
-                        var rawScale = distanceY / doubleTapZoomDistanceThreshold;
-                        if (rawScale < 0) rawScale = -1 / rawScale;
+
+                        var rawScale = (distanceY + doubleTapZoomDistanceThreshold) / doubleTapZoomDistanceThreshold;
+
+                        if (distanceY < 0)
+                        {
+                            rawScale = doubleTapZoomDistanceThreshold / (-distanceY + doubleTapZoomDistanceThreshold);
+                        }
 
                         var scale = GetScaleValue(rawScale);
                         currentMatrix.PostScale(scale, scale, initialTouchPoint.X, initialTouchPoint.Y);
                         (var correctTransX, var correctTransY) = CorrectTranslateValues(initialTouchPoint.X, initialTouchPoint.Y);
                         currentMatrix.PostTranslate(correctTransX, correctTransY);
+                        break;
                     }
-                    break;
                 case MotionEventActions.Move when currentTouchMode == TouchMode.Drag:
                     currentMatrix.Set(initialMatrix);
                     (var transX, var transY) = GetTranslateValues(e.GetX(), e.GetY(), initialTouchPoint.X, initialTouchPoint.Y);
