@@ -56,6 +56,10 @@
     <Folder Include="Resources\drawable\" />
     <Folder Include="UI\Controls\" />
     <Folder Include="Resources\mipmap-anydpi\" />
+    <Folder Include="Extensions\">
+    </Folder>
+    <Folder Include="Common\">
+    </Folder>
   </ItemGroup>
   <ItemGroup>
     <AndroidResource Include="Resources\layout\activity_splash.xml" />
@@ -82,13 +86,15 @@
     <Compile Include="UI\Activities\MapActivity.cs" />
     <Compile Include="UI\Activities\SplashActivity.cs" />
     <Compile Include="UI\Controls\MapImageView.cs" />
+    <Compile Include="Extensions\UIExtensions.cs" />
+    <Compile Include="Common\MatrixValue.cs" />
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="MvvmCross">
-      <Version>6.2.0</Version>
+      <Version>6.2.3</Version>
     </PackageReference>
     <PackageReference Include="MvvmCross.Droid.Support.V7.AppCompat">
-      <Version>6.2.0</Version>
+      <Version>6.2.3</Version>
     </PackageReference>
     <PackageReference Include="Xamarin.Android.Support.Constraint.Layout">
       <Version>1.1.2</Version>
